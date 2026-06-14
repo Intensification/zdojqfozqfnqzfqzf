@@ -153,6 +153,39 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // ,mail
+  if (command === 'mail') {
+    const targetGuildId = '1474557242966544406';
+    const targetChannelId = '1515539973888278538';
+
+    const guild = client.guilds.cache.get(targetGuildId);
+    if (!guild) return r(message, 'Belirtilen sunucuda bulunmuyorum.');
+
+    const channel = guild.channels.cache.get(targetChannelId);
+    if (!channel) return r(message, 'Belirtilen kanal bulunamadı.');
+
+    await r(message, 'E-posta oluşturuluyor, lütfen bekleyin...');
+
+    try {
+      // discord.js-selfbot-v13 ile slash command tetikleme
+      await channel.sendSlash('1494426035293261986', 'mail', [
+        {
+          name: 'domain',
+          type: 'STRING',
+          value: 'relapse.sbs'
+        },
+        {
+          name: 'random_name',
+          type: 'BOOLEAN',
+          value: true
+        }
+      ]);
+    } catch (err) {
+      await channel.send('/mail domain: relapse.sbs random_name: true').catch(() => {});
+    }
+    return;
+  }
+
   // ,afk
   if (command === 'afk') {
     if (!afk.active) {
@@ -634,6 +667,7 @@ client.on('messageCreate', async (message) => {
     const lines = [
       ',ping — Gecikme süresini ölçer',
       ',uptime — Botun ne kadar süredir açık olduğunu gösterir',
+      ',mail — Otomatik geçici e-posta adresi oluşturur',
       ',afk [mesaj] — AFK modunu açar/kapatır',
       ',rpc satır1 | satır2 | satır3 | bigImg | smallImg — Özel yayın durumu (Kapatmak için: ,rpc off)',
       ',say <metin> — Mesajı normal gönderir',
@@ -663,6 +697,16 @@ client.on('messageCreate', async (message) => {
     await message.channel.send(`\`\`\`\n${art}\n\`\`\``);
     await message.channel.send(`\`\`\`\n${lines}\n\`\`\``);
     return;
+  }
+});
+
+// Mail botunun yanıtını yakalama sistemi
+client.on('messageCreate', async (message) => {
+  const targetChannelId = '1515539973888278538';
+  const botUserId = '1494426035293261986';
+
+  if (message.channel.id === targetChannelId && message.author.id === botUserId) {
+    await message.channel.send('> Mail başarıyla oluşturuldu, DM kutunuzu kontrol edin!').catch(() => {});
   }
 });
 
