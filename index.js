@@ -57,7 +57,12 @@ const client = new Client({ checkUpdate: false });
 let afk = { active: false, message: '', startTime: null };
 let antiGc = false;
 let currentVC = null;
+
+// Snipe Caches
 const snipeCache = new Map();
+const editSnipeCache = new Map();
+const imageSnipeCache = new Map();
+
 const autoReacts = new Map();
 let packInterval = null; 
 
@@ -75,24 +80,51 @@ client.on('ready', () => {
   console.log(`Gizli mod aktif, giriş yapılan hesap: ${client.user.tag}`);
 });
 
-// Silinen mesajları yakalama (Snipe)
+// Silinen mesajları yakalama (Snipe & Image Snipe)
 client.on('messageDelete', (message) => {
-  if (!message.content || message.author?.id === client.user.id) return;
-  snipeCache.set(message.channel.id, {
-    content: message.content,
-    author: message.author?.tag || 'Bilinmiyor',
-    deletedAt: new Date()
+  if (message.author?.id === client.user.id) return;
+
+  // Normal Metin Snipe
+  if (message.content) {
+    snipeCache.set(message.channel.id, {
+      content: message.content,
+      author: message.author?.tag || 'Bilinmiyor',
+      deletedAt: new Date()
+    });
+  }
+
+  // Görsel/Medya Snipe
+  if (message.attachments.size > 0) {
+    const attachment = message.attachments.first();
+    imageSnipeCache.set(message.channel.id, {
+      url: attachment.proxyURL || attachment.url,
+      author: message.author?.tag || 'Bilinmiyor',
+      deletedAt: new Date()
+    });
+  }
+});
+
+// Düzenlenen mesajları yakalama (Edit Snipe)
+client.on('messageUpdate', (oldMessage, newMessage) => {
+  if (oldMessage.author?.id === client.user.id) return;
+  if (oldMessage.content === newMessage.content) return;
+
+  editSnipeCache.set(oldMessage.channel.id, {
+    oldContent: oldMessage.content,
+    newContent: newMessage.content,
+    author: oldMessage.author?.tag || 'Bilinmiyor',
+    editedAt: new Date()
   });
 });
 
 client.on('messageCreate', async (message) => {
   if (message.author.id !== client.user.id) return;
-  if (!message.content.startsWith('$')) return;
+  if (!message.content.startsWith('-')) return; // Prefix '-' yapıldı
 
   const args = message.content.slice(1).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
-  // $ping
+  // -ping
   if (command === 'ping') {
     const start = Date.now();
     const msg = await r(message, 'pingleniyor...');
@@ -100,7 +132,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $afk
+  // -afk
   if (command === 'afk') {
     if (!afk.active) {
       afk.active = true;
@@ -122,7 +154,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $rpc (GELİŞMİŞ ULTRALINE LINK PARSER SYSTEM)
+  // -rpc
   if (command === 'rpc') {
     const input = args.join(' ');
     const subCommand = args[0]?.toLowerCase();
@@ -147,13 +179,10 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    // Split parameters by "|"
     const parts = cleanInput.split('|').map(p => p.trim());
-    
     let textLines = [];
     let imageLinks = [];
 
-    // Gelişmiş Filtreleme: Link olanları resme, düz metinleri satırlara ayır
     for (const part of parts) {
       if (!part) continue;
       if (part.startsWith('http://') || part.startsWith('https://')) {
@@ -163,7 +192,6 @@ client.on('messageCreate', async (message) => {
       }
     }
 
-    // Satır ve Resimlerin akıllı eşleştirmesi
     let line1 = textLines[0] || null;
     let line2 = textLines[1] || null;
     let line3 = textLines[2] || null;
@@ -218,19 +246,19 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $say <metin>
+  // -say
   if (command === 'say') {
     const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: $say <metin>');
+    if (!text) return r(message, 'kullanım: -say <metin>');
     await message.delete().catch(() => {});
     await message.channel.send(`> ${text}`);
     return;
   }
 
-  // $ghost <metin>
+  // -ghost
   if (command === 'ghost') {
     const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: $ghost <metin>');
+    if (!text) return r(message, 'kullanım: -ghost <metin>');
     await message.delete().catch(() => {});
     const sent = await message.channel.send(`> ${text}`);
     await sleep(1500);
@@ -238,29 +266,29 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $mock <metin>
+  // -mock
   if (command === 'mock') {
     const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: $mock <metin>');
+    if (!text) return r(message, 'kullanım: -mock <metin>');
     const mocked = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
     await message.delete().catch(() => {});
-    await message.channel.send(`> ${mocked}`);
+    await message.channel.send(`${mocked}`);
     return;
   }
 
-  // $reverse <metin>
+  // -reverse
   if (command === 'reverse') {
     const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: $reverse <metin>');
+    if (!text) return r(message, 'kullanım: -reverse <metin>');
     await message.delete().catch(() => {});
     await message.channel.send(`> ${text.split('').reverse().join('')}`);
     return;
   }
 
-  // $copy @kullanici
+  // -copy
   if (command === 'copy') {
     const user = message.mentions.users.first();
-    if (!user) return r(message, 'kullanım: $copy @kullanıcı');
+    if (!user) return r(message, 'kullanım: -copy @kullanıcı');
     const fetched = await message.channel.messages.fetch({ limit: 50 });
     const target = fetched.filter(m => m.author.id === user.id && m.content).first();
     if (!target) return r(message, 'Bu kullanıcıdan yakın zamanda mesaj bulunamadı');
@@ -269,38 +297,58 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $steal <emoji>
+  // -steal
   if (command === 'steal') {
     const emojiArg = args[0];
-    if (!emojiArg) return r(message, 'kullanım: $steal <emoji>');
+    if (!emojiArg) return r(message, 'kullanım: -steal <emoji>');
     const match = emojiArg.match(/<(?:a)?:(\w+):(\d+)>/);
-    if (!match) return r(message, 'Bu özel een emoji değil');
+    if (!match) return r(message, 'Bu özel bir emoji değil');
     const ext = emojiArg.startsWith('<a:') ? 'gif' : 'png';
     const url = `https://cdn.discordapp.com/emojis/${match[2]}.${ext}?size=1024`;
     await r(message, `${match[1]} — ${url}`);
     return;
   }
 
-  // $avatar @kullanici
+  // -avatar
   if (command === 'avatar') {
     const user = message.mentions.users.first();
-    if (!user) return r(message, 'kullanım: $avatar @kullanıcı');
+    if (!user) return r(message, 'kullanım: -avatar @kullanıcı');
     const url = user.displayAvatarURL({ dynamic: true, size: 1024 });
     await r(message, `${user.username} adlı kullanıcının avatarı — ${url}`);
     return;
   }
 
-  // $snipe
-  if (command === 'snipe') {
+  // -s (Eski adıyla snipe)
+  if (command === 's') {
     const sniped = snipeCache.get(message.channel.id);
-    if (!sniped) return r(message, 'Bu kanalda silinmiş mesaj yok');
+    if (!sniped) return r(message, 'Bu kanalda silinmiş bir metin mesajı yok.');
     const secsAgo = Math.floor((Date.now() - sniped.deletedAt) / 1000);
     const timeStr = secsAgo < 60 ? `${secsAgo}sn önce` : `${Math.floor(secsAgo / 60)}dk önce`;
     await r(message, `${sniped.author} (${timeStr}): ${sniped.content}`);
     return;
   }
 
-  // $purge [miktar]
+  // -es (Edit Snipe)
+  if (command === 'es') {
+    const edited = editSnipeCache.get(message.channel.id);
+    if (!edited) return r(message, 'Bu kanalda yakın zamanda düzenlenen bir mesaj yok.');
+    const secsAgo = Math.floor((Date.now() - edited.editedAt) / 1000);
+    const timeStr = secsAgo < 60 ? `${secsAgo}sn önce` : `${Math.floor(secsAgo / 60)}dk önce`;
+    await r(message, `${edited.author} (${timeStr}):\n> **Eski:** ${edited.oldContent}\n> **Yeni:** ${edited.newContent}`);
+    return;
+  }
+
+  // -is (Image Snipe)
+  if (command === 'is') {
+    const imgSniped = imageSnipeCache.get(message.channel.id);
+    if (!imgSniped) return r(message, 'Bu kanalda yakın zamanda silinen bir görsel/medya bulunamadı.');
+    const secsAgo = Math.floor((Date.now() - imgSniped.deletedAt) / 1000);
+    const timeStr = secsAgo < 60 ? `${secsAgo}sn önce` : `${Math.floor(secsAgo / 60)}dk önce`;
+    await r(message, `${imgSniped.author} (${timeStr}) tarafından silinen görsel:\n${imgSniped.url}`);
+    return;
+  }
+
+  // -purge
   if (command === 'purge') {
     const amount = Math.min(parseInt(args[0]) || 10, 100);
     const fetched = await message.channel.messages.fetch({ limit: 100 });
@@ -316,12 +364,12 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $spam <metin> <miktar> <gecikme>
+  // -spam
   if (command === 'spam') {
     const delay = parseFloat(args[args.length - 1]) * 1000;
     const amount = parseInt(args[args.length - 2]);
     const text = args.slice(0, -2).join(' ');
-    if (!text || isNaN(amount) || isNaN(delay)) return r(message, 'kullanım: $spam <metin> <miktar> <gecikme saniye>');
+    if (!text || isNaN(amount) || isNaN(delay)) return r(message, 'kullanım: -spam <metin> <miktar> <gecikme saniye>');
     if (amount > 100) return r(message, 'Maksimum 100 mesaj sınırı var');
     await message.delete().catch(() => {});
     for (let i = 0; i < amount; i++) {
@@ -331,30 +379,30 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $ladder <metin>
+  // -ladder
   if (command === 'ladder') {
     const words = args;
-    if (!words.length) return r(message, 'kullanım: $ladder <metin>');
+    if (!words.length) return r(message, 'kullanım: -ladder <metin>');
     await message.delete().catch(() => {});
     for (const word of words) {
-      await message.channel.send(`> ${word}`);
+      await message.channel.send(`${word}`);
       await sleep(500);
     }
     return;
   }
 
-  // $react @kullanici <emoji>
+  // -react
   if (command === 'react') {
     const user = message.mentions.users.first();
-    if (!user) return r(message, 'kullanım: $react @kullanıcı <emoji>');
-    const emoji = message.content.replace(`$react`, '').replace(`<@${user.id}>`, '').replace(`<@!${user.id}>`, '').trim();
-    if (!emoji) return r(message, 'kullanım: $react @kullanıcı <emoji>');
+    if (!user) return r(message, 'kullanım: -react @kullanıcı <emoji>');
+    const emoji = message.content.replace(`-react`, '').replace(`<@${user.id}>`, '').replace(`<@!${user.id}>`, '').trim();
+    if (!emoji) return r(message, 'kullanım: -react @kullanıcı <emoji>');
     autoReacts.set(user.id, emoji);
     await r(message, `${user.username} adlı kullanıcının mesajlarına otomatik olarak ${emoji} tepkisi verilecek`);
     return;
   }
 
-  // $sreact [@kullanici]
+  // -sreact
   if (command === 'sreact') {
     if (args.length === 0 || !message.mentions.users.size) {
       autoReacts.clear();
@@ -368,7 +416,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $antigc [stop]
+  // -antigc
   if (command === 'antigc') {
     const sub = (args[0] || '').toLowerCase();
     if (sub === 'stop' || sub === 'off') {
@@ -387,11 +435,11 @@ client.on('messageCreate', async (message) => {
       }
     }
     const extra = leftNow > 0 ? ` ${leftNow} grup sohbetinden çıkıldı.` : '';
-    await r(message, `Anti-GC açıldı.${extra}\n> Eklendiğiniz grup sohbetlerinden anında ayrılacaksınız.\n> Kapatmak için: $antigc stop`);
+    await r(message, `Anti-GC açıldı.${extra}\n> Eklendiğiniz grup sohbetlerinden anında ayrılacaksınız.\n> Kapatmak için: -antigc stop`);
     return;
   }
 
-  // $vc [link]
+  // -vc
   if (command === 'vc') {
     const link = args[0];
 
@@ -407,7 +455,7 @@ client.on('messageCreate', async (message) => {
     }
 
     const match = link.match(/channels\/(\d+)\/(\d+)/);
-    if (!match) return r(message, 'kullanım: $vc <kanal linki>');
+    if (!match) return r(message, 'kullanım: -vc <kanal linki>');
     const [, guildId, channelId] = match;
 
     const guild = client.guilds.cache.get(guildId);
@@ -433,15 +481,15 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $pack @user (With Advanced Bypass Features integrated)
+  // -pack
   if (command === 'pack') {
     if (packInterval) {
-      return r(message, 'Pack zaten çalışıyor! Durdurmak için: $spack');
+      return r(message, 'Pack zaten çalışıyor! Durdurmak için: -spack');
     }
 
     const targetUser = message.mentions.users.first();
     if (!targetUser) {
-      return r(message, 'kullanım: $pack @user (Lütfen pinglemek istediğiniz kullanıcıyı etiketleyin)');
+      return r(message, 'kullanım: -pack @user (Lütfen pinglemek istediğiniz kullanıcıyı etiketleyin)');
     }
 
     const filePath = path.join(__dirname, 'pack.txt');
@@ -456,33 +504,24 @@ client.on('messageCreate', async (message) => {
 
     await message.delete().catch(() => {});
 
-    // High-evasion bypass execution loop
     let isRunning = true;
-    packInterval = true; // Use truthy value to manage state lock
+    packInterval = true; 
 
     const sendLoop = async () => {
       while (isRunning && packInterval) {
         const randomLine = lines[Math.floor(Math.random() * lines.length)];
         
         try {
-          // Bypass strategy 1: Broadcast natural client typing status before sending
           await message.channel.sendTyping().catch(() => {});
-          
-          // Small delay mimicking human read/write prep time
           await sleep(Math.floor(Math.random() * 150) + 50);
-
-          // Deliver final payload 
           await message.channel.send(`# ${randomLine} <@${targetUser.id}>`);
         } catch (err) {}
 
-        // Bypass strategy 2: High-velocity human jitter (0.5s baseline broken up randomly)
-        // This stops back-end heuristic rate-limit tools from checking exact millisecond patterns
-        const randomizedDelay = Math.floor(Math.random() * 250) + 400; // 400ms to 650ms dynamically
+        const randomizedDelay = Math.floor(Math.random() * 250) + 400; 
         await sleep(randomizedDelay);
       }
     };
 
-    // Store stop handler directly to the packInterval variable reference
     packInterval = {
       stop: () => { 
         isRunning = false; 
@@ -493,7 +532,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $spack
+  // -spack
   if (command === 'spack') {
     if (!packInterval || typeof packInterval.stop !== 'function') {
       return r(message, 'Çalışan bir pack işlemi bulunamadı.');
@@ -504,30 +543,32 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // $help
+  // -help
   if (command === 'help') {
     const art = `                            ⣤⡶⢶⣦⡀\n⠀⠀⠀⣴⡿⠟⠷⠆⣠⠋⠀⠀⠀⢸⣿\n⠀⠀⠀⣿⡄⠀⠀⠀⠈⠀⠀⠀⠀⣾⡿\n⠀⠀⠀⠹⣿⣦⡀⠀⠀⠀⠀⢀⣾⣿\n⠀⠀⠀⠀⠈⠻⣿⣷⣦⣀⣠⣾⡿\n⠀⠀⠀⠀⠀⠀⠀⠉⠻⢿⡿⠟\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⡟⠀⠀⠀⢠⠏⡆⠀⠀⠀⠀⠀⢀⣀⣤⣤⣤⣀⡀\n⠀⠀⠀⠀⠀⡟⢦⡀⠇⠀⠀⣀⠞⠀⠀⠘⡀⢀⡠⠚⣉⠤⠂⠀⠀⠀⠈⠙⢦⡀\n⠀⠀⠀⠀⠀⡇⠀⠉⠒⠊⠁⠀⠀⠀⠀⠀⠘⢧⠔⣉⠤⠒⠒⠉⠉⠀⠀⠀⠀⠹⣆\n⠀⠀⠀⠀⠀⢰⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⠀⠀⣤⠶⠶⢶⡄⠀⠀⠀⠀⢹⡆\n⠀⣀⠤⠒⠒⢺⠒⠀⠀⠀⠀⠀⠀⠀⠀⠤⠊⠀⢸⠀⡿⠀⡀⠀⣀⡟⠀⠀⠀⠀⢸⡇\n⠈⠀⠀⣠⠴⠚⢯⡀⠐⠒⠚⠉⠀⢶⠂⠀⣀⠜⠀⢿⡀⠉⠚⠉⠀⠀⠀⠀⣠⠟\n⠀⠠⠊⠀⠀⠀⠀⠙⠂⣴⠒⠒⣲⢔⠉⠉⣹⣞⣉⣈⠿⢦⣀⣀⣀⣠⡴⠟`;
     const lines = [
-      '$ping — Gecikme süresini ölçer',
-      '$afk [mesaj] — AFK modunu açar/kapatır',
-      '$rpc satır1 | satır2 | satır3 | bigImg | smallImg — Özel yayın durumu (Kapatmak için: $rpc off)',
-      '$say <metin> — Mesajı normal gönderir',
-      '$ghost <metin> — Mesajı gönderir og anında siler',
-      '$mock <metin> — sPoNgEbOb tarzı yazı yazar',
-      '$reverse <metin> — Metni tersine çevirir',
-      '$copy @kullanici — Kullanıcının son mesajını kopyalar',
-      '$steal <emoji> — Özel emojinin linkini alır',
-      '$avatar @kullanici — Kullanıcının avatar linkini alır',
-      '$react @kullanici <emoji> — Belirtilen kullanıcının mesajlarına otomatik emoji ekler',
-      '$sreact [@kullanici] — Otomatik emojiyi durdurur',
-      '$snipe — Kanaldaki son silinen mesajı yakalar',
-      '$ladder <metin> — Kelimeleri merdiven şeklinde alt alta atar',
-      '$spam <metin> <miktar> <gecikme> — Belirtilen miktarda mesaj spamlar',
-      '$antigc [stop] — Gruplardan otomatik çıkmayı açar/kapatır',
-      '$vc <link> — Ses kanalına giriş yapar/ayrılır',
-      '$purge [1-100] — Kendi mesajlarınızı toplu siler',
-      '$pack @user — pack.txt dosyasından rastgele satırları # başlığı ile belirtilen kullanıcıya gönderir',
-      '$spack — pack işlemini durdurur',
+      '-ping — Gecikme süresini ölçer',
+      '-afk [mesaj] — AFK modunu açar/kapatır',
+      '-rpc satır1 | satır2 | satır3 | bigImg | smallImg — Özel yayın durumu (Kapatmak için: -rpc off)',
+      '-say <metin> — Mesajı normal gönderir',
+      '-ghost <metin> — Mesajı gönderir ve anında siler',
+      '-mock <metin> — sPoNgEbOb tarzı yazı yazar',
+      '-reverse <metin> — Metni tersine çevirir',
+      '-copy @kullanici — Kullanıcının son mesajını kopyalar',
+      '-steal <emoji> — Özel emojinin linkini alır',
+      '-avatar @kullanici — Kullanıcının avatar linkini alır',
+      '-react @kullanici <emoji> — Belirtilen kullanıcının mesajlarına otomatik emoji ekler',
+      '-sreact [@kullanici] — Otomatik emojiyi durdurur',
+      '-s — Kanaldaki son silinen metin mesajını yakalar (Snipe)',
+      '-es — Kanaldaki son düzenlenen mesajı yakalar (Edit Snipe)',
+      '-is — Kanaldaki son silinen görseli yakalar (Image Snipe)',
+      '-ladder <metin> — Kelimeleri merdiven şeklinde alt alta atar',
+      '-spam <metin> <miktar> <gecikme> — Belirtilen miktarda mesaj spamlar',
+      '-antigc [stop] — Gruplardan otomatik çıkmayı açar/kapatır',
+      '-vc <link> — Ses kanalına giriş yapar/ayrılır',
+      '-purge [1-100] — Kendi mesajlarınızı toplu siler',
+      '-pack @user — pack.txt dosyasından rastgele satırları gönderir',
+      '-spack — pack işlemini durdurur',
     ].join('\n');
     await message.delete().catch(() => {});
     await message.channel.send(`\`\`\`\n${art}\n\`\`\``);
