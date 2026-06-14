@@ -143,22 +143,20 @@ client.on('messageCreate', async (message) => {
     await r(message, 'E-posta oluşturuluyor, lütfen bekleyin...');
 
     try {
-      // Haal via de REST API de applicatiecommando's op voor dit geselecteerde kanaal
+      // Haal de commands op via de REST API om de interne cache-fouten te omzeilen
       const rawCommands = await client.api.channels(channel.id).application(botAppId).commands.get();
       
-      // Initialiseer de channel-commands cache handmatig als deze leeg is
       if (!channel.commands) {
         channel.commands = new (require('discord.js').Collection)();
       }
 
-      // Push de binnengekomen slash commands direct in de lokale cache om de 'toArray' error te skippen
       if (Array.isArray(rawCommands)) {
-        for (const cmd data of rawCommands) {
-          channel.commands.set(cmd_data.id, cmd_data);
+        for (const cmd of rawCommands) {
+          channel.commands.set(cmd.id, cmd);
         }
       }
 
-      // Vuur nu veilig de interactie af naar het kanaal
+      // Stuur het slash-commando veilig door
       await channel.sendSlash(botAppId, 'mail', [
         {
           name: 'domain',
@@ -614,11 +612,11 @@ client.on('messageCreate', async (message) => {
       ',ghost <metin> — Mesajı gönderir/siler',
       ',mock <metin> — sPoNgEbOb yazısı',
       ',reverse <metin> — Metni ters çevirir',
-      ',copy @kullanici — Son mesajı kopyalar',
+      ',copy @kullanıcı — Son mesajı kopyalar',
       ',steal <emoji> — Emojinin linkini alır',
-      ',avatar @kullanici — Avatar linkini alır',
-      ',react @kullanici <emoji> — Otomatik tepki',
-      ',sreact [@kullanici] — Otomatik tepkiyi durdurur',
+      ',avatar @kullanıcı — Avatar linkini alır',
+      ',react @kullanıcı <emoji> — Otomatik tepki',
+      ',sreact [@kullanıcı] — Otomatik tepkiyi durdurur',
       ',s — Snipe text',
       ',es — Edit Snipe',
       ',is — Image Snipe',
