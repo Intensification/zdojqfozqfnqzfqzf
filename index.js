@@ -267,45 +267,6 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // ,say
-  if (command === 'say') {
-    const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: -say <metin>');
-    await message.delete().catch(() => {});
-    await message.channel.send(`> ${text}`);
-    return;
-  }
-
-  // ,ghost
-  if (command === 'ghost') {
-    const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: -ghost <metin>');
-    await message.delete().catch(() => {});
-    const sent = await message.channel.send(`> ${text}`);
-    await sleep(1500);
-    await sent.delete().catch(() => {});
-    return;
-  }
-
-  // ,mock
-  if (command === 'mock') {
-    const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: -mock <metin>');
-    const mocked = text.split('').map((c, i) => i % 2 === 0 ? c.toLowerCase() : c.toUpperCase()).join('');
-    await message.delete().catch(() => {});
-    await message.channel.send(`${mocked}`);
-    return;
-  }
-
-  // ,reverse
-  if (command === 'reverse') {
-    const text = args.join(' ');
-    if (!text) return r(message, 'kullanım: -reverse <metin>');
-    await message.delete().catch(() => {});
-    await message.channel.send(`> ${text.split('').reverse().join('')}`);
-    return;
-  }
-
   // ,copy
   if (command === 'copy') {
     const user = message.mentions.users.first();
@@ -636,10 +597,6 @@ client.on('messageCreate', async (message) => {
       ',uptime — Botun ne kadar süredir açık olduğunu gösterir',
       ',afk [mesaj] — AFK modunu açar/kapatır',
       ',rpc satır1 | satır2 | satır3 | bigImg | smallImg — Özel yayın durumu (Kapatmak için: ,rpc off)',
-      ',say <metin> — Mesajı normal gönderir',
-      ',ghost <metin> — Mesajı gönderir ve anında siler',
-      ',mock <metin> — sPoNgEbOb tarzı yazı yazar',
-      ',reverse <metin> — Metni tersine çevirir',
       ',copy @kullanici — Kullanıcının son mesajını kopyalar',
       ',steal <emoji> — Özel emojinin linkini alır',
       ',avatar @kullanici — Kullanıcının avatar linkini alır',
