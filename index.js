@@ -143,20 +143,7 @@ client.on('messageCreate', async (message) => {
     await r(message, 'E-posta oluşturuluyor, lütfen bekleyin...');
 
     try {
-      // Haal de commands op via de REST API om de interne cache-fouten te omzeilen
-      const rawCommands = await client.api.channels(channel.id).application(botAppId).commands.get();
-      
-      if (!channel.commands) {
-        channel.commands = new (require('discord.js').Collection)();
-      }
-
-      if (Array.isArray(rawCommands)) {
-        for (const cmd of rawCommands) {
-          channel.commands.set(cmd.id, cmd);
-        }
-      }
-
-      // Stuur het slash-commando veilig door
+      // API entegrasyonu olmadan, direkt olarak kütüphanenin sendSlash metodunu tetikliyoruz.
       await channel.sendSlash(botAppId, 'mail', [
         {
           name: 'domain',
