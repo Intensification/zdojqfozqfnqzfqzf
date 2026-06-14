@@ -267,30 +267,6 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // ,copy
-  if (command === 'copy') {
-    const user = message.mentions.users.first();
-    if (!user) return r(message, 'kullanım: -copy @kullanıcı');
-    const fetched = await message.channel.messages.fetch({ limit: 50 });
-    const target = fetched.filter(m => m.author.id === user.id && m.content).first();
-    if (!target) return r(message, 'Bu kullanıcıdan yakın zamanda mesaj bulunamadı');
-    await message.delete().catch(() => {});
-    await message.channel.send(`> ${target.content}`);
-    return;
-  }
-
-  // ,steal
-  if (command === 'steal') {
-    const emojiArg = args[0];
-    if (!emojiArg) return r(message, 'kullanım: -steal <emoji>');
-    const match = emojiArg.match(/<(?:a)?:(\w+):(\d+)>/);
-    if (!match) return r(message, 'Bu özel bir emoji değil');
-    const ext = emojiArg.startsWith('<a:') ? 'gif' : 'png';
-    const url = `https://cdn.discordapp.com/emojis/${match[2]}.${ext}?size=1024`;
-    await r(message, `${match[1]} — ${url}`);
-    return;
-  }
-
   // ,avatar
   if (command === 'avatar') {
     const user = message.mentions.users.first();
@@ -597,8 +573,6 @@ client.on('messageCreate', async (message) => {
       ',uptime — Botun ne kadar süredir açık olduğunu gösterir',
       ',afk [mesaj] — AFK modunu açar/kapatır',
       ',rpc satır1 | satır2 | satır3 | bigImg | smallImg — Özel yayın durumu (Kapatmak için: ,rpc off)',
-      ',copy @kullanici — Kullanıcının son mesajını kopyalar',
-      ',steal <emoji> — Özel emojinin linkini alır',
       ',avatar @kullanici — Kullanıcının avatar linkini alır',
       ',react @kullanici <emoji> — Belirtilen kullanıcının mesajlarına otomatik emoji ekler',
       ',sreact [@kullanici] — Otomatik emojiyi durdurur',
