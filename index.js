@@ -133,7 +133,7 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
-  // ,mail
+// ,mail
   if (command === 'mail') {
     const targetGuildId = '1474557242966544406';
     const targetChannelId = '1515539973888278538';
@@ -148,10 +148,11 @@ client.on('messageCreate', async (message) => {
     await r(message, 'E-posta oluşturuluyor, lütfen bekleyin...');
 
     try {
-      // Hata almamak için önceden botun slash komutlarını zorla indirip önbelleğe alıyoruz
-      await channel.commands.fetch({ applicationId: botAppId }).catch(() => {});
+      // Haal de slash commands van de doeltarget bot op via de globale client application manager
+      // Dit voorkomt de "toArray" en "fetch" errors op de user client
+      await client.application.commands.fetchSlashCommands([botAppId]).catch(() => {});
       
-      // Gerçek slash command interaksiyonu tetikleniyor
+      // Verstuur het echte slash command als user client
       await channel.sendSlash(botAppId, 'mail', [
         {
           name: 'domain',
