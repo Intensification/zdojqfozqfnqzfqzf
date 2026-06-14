@@ -65,6 +65,7 @@ const imageSnipeCache = new Map();
 
 const autoReacts = new Map();
 let packInterval = null; 
+let loveInterval = null; // Interval cache voor het love commando
 
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 const r = (message, text) => message.reply(`> ${text}`);
@@ -543,9 +544,71 @@ client.on('messageCreate', async (message) => {
     return;
   }
 
+  // ,love
+  if (command === 'love') {
+    if (loveInterval) {
+      return r(message, 'Love işlemi zaten çalışıyor! Durdurmak için: -slove');
+    }
+
+    const targetUser = message.mentions.users.first();
+    if (!targetUser) {
+      return r(message, 'kullanım: -love @user (Lütfen sevgi mesajı göndermek istediğiniz kullanıcıyı etiketleyin)');
+    }
+
+    const filePath = path.join(__dirname, 'love.txt');
+    if (!fs.existsSync(filePath)) {
+      return r(message, 'love.txt dosyası bulunamadı. Lütfen botun olduğu klasöre dosyayı ekleyin.');
+    }
+
+    const lines = fs.readFileSync(filePath, 'utf-8').split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    if (lines.length === 0) {
+      return r(message, 'love.txt dosyası boş.');
+    }
+
+    await message.delete().catch(() => {});
+
+    let isRunning = true;
+    loveInterval = true; 
+
+    const sendLoop = async () => {
+      while (isRunning && loveInterval) {
+        const randomLine = lines[Math.floor(Math.random() * lines.length)];
+        
+        try {
+          await message.channel.sendTyping().catch(() => {});
+          await sleep(Math.floor(Math.random() * 150) + 50);
+          await message.channel.send(`# ${randomLine} <@${targetUser.id}>`);
+        } catch (err) {}
+
+        const randomizedDelay = Math.floor(Math.random() * 250) + 400; 
+        await sleep(randomizedDelay);
+      }
+    };
+
+    loveInterval = {
+      stop: () => { 
+        isRunning = false; 
+      }
+    };
+
+    sendLoop();
+    return;
+  }
+
+  // ,slove
+  if (command === 'slove') {
+    if (!loveInterval || typeof loveInterval.stop !== 'function') {
+      return r(message, 'Çalışan bir love işlemi bulunamadı.');
+    }
+    loveInterval.stop();
+    loveInterval = null;
+    await r(message, 'Love işlemi durduruldu.');
+    return;
+  }
+
   // ,help
   if (command === 'help') {
-    // Escaped ASCII art voorkomt code glitches in Discord codeblocks
+    // Jouw handmatig aangepaste ASCII art met de extra spaties
     const art = "                      :::!~!!!!!:.\n                  .xUHWH!! !!?M88WHX:.\n                .X*#M@$!!  !X!M$$$$$$WWx:.\n               :!!!!!!?H! :!$!$$$$$$$$$$8X:\n              !!~  ~:~!! :~!$!#$$$$$$$$$$8X:\n             :!~::!H!<   ~.U$X!?R$$$$$$$$MM!\n             ~!~!!!!~~ .:XW$$$U!!?$$$$$$RMM!\n               !:~~~ .:!M\"T#$$$$WX??#MRRMMM!\n               ~?WuxiW*`   `\"#$$$$8!!!!??!!!\n             :X- M$$$$       `\"T#$T~!8$WUXU~\n            :%`  ~#$$$m:        ~!~ ?$$$$$$\n          :!`.-   ~T$$$$8xx.  .444- ~\"\"##*\"\n.....   -~~:<\` !    ~?T#$$@@W@*?$$      /`\nW$@@M!!! .!~~ !!     .:XUW$W!~ `\"~:    :\n#\"~~\`.:x%\`!!  !H:   !WM$$$$Ti.: .!WUn+!\`\n:::~:!!\`:X~ .: ?H.!u \"$$$B$$$!W:U!T$$M~\n.~~   :X@!.-~   ?@WTWo(\"*$$$W$TH$! \`\nWi.~!X$?!-~    : ?$$$B$Wu(\"**$RM!\n$R@i.~~ !     :   ~$$$$$B$$en:\`\`\n?MXT@Wx.~    :     ~\"##*$$$$M~";
     
     const lines = [
@@ -571,6 +634,8 @@ client.on('messageCreate', async (message) => {
       ',purge [1-100] — Kendi mesajlarınızı toplu siler',
       ',pack @user — pack.txt dosyasından rastgele satırları gönderir',
       ',spack — pack işlemini durdurur',
+      ',love @user — love.txt dosyasından rastgele satırları gönderir',
+      ',slove — love işlemini durdurur',
     ].join('\n');
     
     await message.delete().catch(() => {});
