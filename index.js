@@ -160,16 +160,11 @@ client.on('messageCreate', async (message) => {
       afk.message = args.join(' ') || 'afk';
       afk.startTime = new Date();
       
-      const afkStatus = new RichPresence(client)
-        .setType('CUSTOM')
-        .setName('Custom Status')
-        .setState(`AFK: ${afk.message}`);
-
-      await updatePresence([afkStatus]);
+      // REMOVED: Status update lines to prevent changing your Discord status
       await r(message, `@${client.user.username}\n> AFK modu açıldı: ${afk.message}`);
     } else {
       afk = { active: false, message: '', startTime: null };
-      await updatePresence([]);
+      // REMOVED: Status clear lines to preserve whatever status you currently have
       await r(message, `@${client.user.username}\n> AFK modu kapatıldı`);
     }
     return;
@@ -432,7 +427,7 @@ client.on('messageCreate', async (message) => {
         d: { guild_id: guildId, channel_id: channelId, self_mute: true, self_deaf: false, self_video: false, flags: 2 }
       });
       currentVC = channelId;
-      await r(message, `${channel.name} kanalına katıldım ve kendimi susturdum (Mute)`);
+      await r(message, `${channel.name} kanalına katıldım og kendimi susturdum (Mute)`);
     } catch (e) {
       await r(message, 'Ses kanalına katılırken bir hata oluştu');
     }
@@ -565,8 +560,7 @@ client.on('messageCreate', async (message) => {
 
   // ,help
   if (command === 'help') {
-    // Jouw handmatig aangepaste ASCII art met de extra spaties
-    const art = "                      :::!~!!!!!:.\n                  .xUHWH!! !!?M88WHX:.\n                .X*#M@$!!  !X!M$$$$$$WWx:.\n               :!!!!!!?H! :!$!$$$$$$$$$$8X:\n              !!~  ~:~!! :~!$!#$$$$$$$$$$8X:\n             :!~::!H!<   ~.U$X!?R$$$$$$$$MM!\n             ~!~!!!!~~ .:XW$$$U!!?$$$$$$RMM!\n               !:~~~ .:!M\"T#$$$$WX??#MRRMMM!\n               ~?WuxiW*`   `\"#$$$$8!!!!??!!!\n             :X- M$$$$       `\"T#$T~!8$WUXU~\n            :%`  ~#$$$m:        ~!~ ?$$$$$$\n          :!`.-   ~T$$$$8xx.  .444- ~\"\"##*\"\n.....   -~~:<\` !    ~?T#$$@@W@*?$$      /`\nW$@@M!!! .!~~ !!     .:XUW$W!~ `\"~:    :\n#\"~~\`.:x%\`!!  !H:   !WM$$$$Ti.: .!WUn+!\`\n:::~:!!\`:X~ .: ?H.!u \"$$$B$$$!W:U!T$$M~\n.~~   :X@!.-~   ?@WTWo(\"*$$$W$TH$! \`\nWi.~!X$?!-~    : ?$$$B$Wu(\"**$RM!\n$R@i.~~ !     :   ~$$$$$B$$en:\`\`\n?MXT@Wx.~    :     ~\"##*$$$$M~";
+    const art = "                      :::!~!!!!!:.\n                  .xUHWH!! !!?M88WHX:.\n                .X*#M@$!!  !X!M$$$$$$WWx:.\n               :!!!!!?H! :!$!$$$$$$$$$$8X:\n              !!~  ~:~!! :~!$!#$$$$$$$$$$8X:\n             :!~::!H!<   ~.U$X!?R$$$$$$$$MM!\n             ~!~!!!!~~ .:XW$$$U!!?$$$$$$RMM!\n               !:~~~ .:!M\"T#$$$$WX??#MRRMMM!\n               ~?WuxiW*`   `\"#$$$$8!!!!??!!!\n             :X- M$$$$       `\"T#$T~!8$WUXU~\n            :%`  ~#$$$m:        ~!~ ?$$$$$$\n          :!`.-   ~T$$$$8xx.  .444- ~\"\"##*\"\n.....   -~~:<\` !    ~?T#$$@@W@*?$$      /`\nW$@@M!!! .!~~ !!     .:XUW$W!~ `\"~:    :\n#\"~~\`.:x%\`!!  !H:   !WM$$$$Ti.: .!WUn+!\`\n:::~:!!\`:X~ .: ?H.!u \"$$$B$$$!W:U!T$$M~\n.~~   :X@!.-~   ?@WTWo(\"*$$$W$TH$! \`\nWi.~!X$?!-~    : ?$$$B$Wu(\"**$RM!\n$R@i.~~ !     :   ~$$$$$B$$en:\`\`\n?MXT@Wx.~    :     ~\"##*$$$$M~";
     
     const lines = [
       ',ping — Gecikme süresini ölçer',
