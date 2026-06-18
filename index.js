@@ -57,7 +57,7 @@ const client = new Client({ checkUpdate: false });
 let afk = { active: false, message: '', startTime: null };
 let antiGc = false;
 let currentVC = null;
-let bootTime = Date.now(); // Saved uptime start time
+let bootTime = Date.now(); // Uptime boot time saved
 
 // Snipe Caches
 const snipeCache = new Map();
@@ -159,7 +159,6 @@ client.on('messageCreate', async (message) => {
       afk.active = true;
       afk.message = args.join(' ') || 'afk';
       afk.startTime = new Date();
-      
       await r(message, `@${client.user.username}\n> AFK mode enabled: ${afk.message}`);
     } else {
       afk = { active: false, message: '', startTime: null };
@@ -640,7 +639,7 @@ client.on('channelCreate', async (channel) => {
 
 process.on('unhandledRejection', () => {});
 
-// Auto Mute protection (Max protection for null objects during client connection sync)
+// Auto Mute protection (Max protection for null elements during initial client gateway sync)
 client.on('voiceStateUpdate', (oldState, newState) => {
   if (newState?.member?.id === client.user?.id && newState?.channelId) {
     if (!newState.selfMute) {
