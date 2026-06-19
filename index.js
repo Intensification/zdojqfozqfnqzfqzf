@@ -23,12 +23,14 @@ const VR_PROPS = {
 };
 
 let currentPresence = null;
+let currentStatus = 'online'; // Default tracking status
 
 // ── RAW GATEWAY INJECTION ─────────────────────────────────────────
 const _identify = WebSocketShard.prototype.identify;
 WebSocketShard.prototype.identify = function () {
   const _send = this.send.bind(this);
   this.send = function (data) {
+    // Op 2: Identify payload (Initial Connection)
     if (data && data.op === 2) {
       data.d.properties = { ...VR_PROPS };
       data.d.capabilities = 16381;
@@ -42,7 +44,14 @@ WebSocketShard.prototype.identify = function () {
         api_code_version: 0,
       };
     }
+    // Op 3: Presence Update payload (Status/Activity changes)
     if (data && data.op === 3) {
+      if (data.d.status) {
+        currentStatus = data.d.status; // Dynamically track changes made by the user
+      } else {
+        data.d.status = currentStatus;
+      }
+      
       if (currentPresence) {
         data.d.activities = currentPresence;
       }
@@ -74,7 +83,8 @@ const r = (message, text) => message.reply(`> ${text}`);
 async function updatePresence(activities) {
   currentPresence = activities.map(act => typeof act.toJSON === 'function' ? act.toJSON() : act);
   try {
-    await client.user.setPresence({ activities });
+    // Keeps current status while setting the new activity
+    await client.user.setPresence({ status: currentStatus, activities });
   } catch (err) {}
 }
 
