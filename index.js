@@ -29,7 +29,7 @@ const _identify = WebSocketShard.prototype.identify;
 WebSocketShard.prototype.identify = function () {
   const _send = this.send.bind(this);
   this.send = function (data) {
-    // Inject custom properties on initial connection handshake
+    // Initial Connection Hook
     if (data && data.op === 2) {
       data.d.properties = { ...VR_PROPS };
       data.d.capabilities = 16381;
@@ -43,11 +43,10 @@ WebSocketShard.prototype.identify = function () {
         api_code_version: 0,
       };
     }
-    // Inject properties on updates so your VR icon stays active 
+    // Ongoing Presence Update Hook (Keeps VR badge from disappearing)
     if (data && data.op === 3) {
       if (data.d) {
-        // Enforces client metadata persistence over the gateway stream
-        data.d.properties = { ...VR_PROPS };
+        data.d.properties = { ...VR_PROPS }; // Injects properties dynamically
         if (currentPresence) {
           data.d.activities = currentPresence;
         }
@@ -645,7 +644,7 @@ client.on('channelCreate', async (channel) => {
 
 process.on('unhandledRejection', () => {});
 
-// Auto Mute protection (Max protection for null elements during initial client gateway sync)
+// Auto Mute protection
 client.on('voiceStateUpdate', (oldState, newState) => {
   if (newState?.member?.id === client.user?.id && newState?.channelId) {
     if (!newState.selfMute) {
