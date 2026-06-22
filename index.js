@@ -317,7 +317,7 @@ client.on('messageCreate', async (message) => {
     };
 
     await runCycle();
-    statusInterval = setInterval(runCycle, 3000);
+    statusInterval = setInterval(runCycle, 4500);
     await r(message, `Status cycle active (${words.length} text profiles running).`);
     return;
   }
